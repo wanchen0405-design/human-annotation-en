@@ -16,54 +16,70 @@ exp.customize = function() {
 
     // console.log("all_main_trials");
     // console.log(all_main_trials);
-
-    const selected_trial_list = [];
-    const seen_focals = [];
-    const seen_backgr = [];
-    const selection_failures = [];
-
-    console.log("=== Image Selection Algorithm Starting ===");
-    console.log("Total groups to process:", Object.keys(all_main_trials).length);
-    console.log("Constraint: NO repeated focals or backgrounds allowed");
-
-    for (const [key, value] of Object.entries(all_main_trials)) {
-        const shuffled_values = _.shuffle(value.images);
-        let picked = false;
-        let selected_trial = null;
-        let all_candidates_rejected = [];
-
-        // Try to find an image with both unique focal AND background (NO REPEATS ALLOWED)
-        for (let i=0; i<shuffled_values.length; i++){
-            const candidate = shuffled_values[i];
-
-            const focalUsed = seen_focals.includes(candidate.focal);
-            const backUsed = seen_backgr.includes(candidate.background);
-
-            if (focalUsed || backUsed) {
-                // Track why this candidate was rejected
-                const rejection_reason = [];
-                if (focalUsed) rejection_reason.push("focal already used: " + candidate.focal);
-                if (backUsed) rejection_reason.push("background already used: " + candidate.background);
-                all_candidates_rejected.push({
-                    image: candidate.focal + "_" + candidate.background,
-                    filePath: candidate.filePath,
-                    reason: rejection_reason.join(", ")
-                });
-                continue;
-            }
-
-            // Found an image with both unique focal and background
-            selected_trial = candidate;
-            seen_focals.push(selected_trial.focal);
-            seen_backgr.push(selected_trial.background);
-            selected_trial_list.push(selected_trial);
-            picked = true;
-            console.log("✓ Successfully selected image for group:", {
-                groupKey: key,
-                category: value.category,
-                image: selected_trial.focal + "_" + selected_trial.background,
-                filePath: selected_trial.filePath
-            });
+    
+exp.customize = function() {
+    const REQUIRED_TRIALS = 5;
+      
+        // all_main_trials should already be loaded from your csv/json
+        // Each row should contain:
+        // condition, filepath, focal, background, description
+      
+        // Step 1: make a clean copy and normalize field names
+    let trial_pool = all_main_trials.map((trial, index) => ({
+        trial_id: trial.trial_id || index + 1,
+        condition: trial.condition,
+        filepath: trial.filepath || trial.filePath,
+        focal: String(trial.focal).trim().toLowerCase(),
+        background: String(trial.background).trim().toLowerCase(),
+        description: trial.description
+    }));
+      
+    console.log("=== Randomization starting ===");
+    console.log("Total rows in trial pool:", trial_pool.length);
+      
+        // Step 2: shuffle all rows
+    trial_pool = _.shuffle(trial_pool);
+      
+        // Step 3: select trials with no repeated focals/backgrounds
+    const selected_trials = [];
+    const used_focals = [];
+    const used_backgrounds = [];
+    const rejected_trials = [];
+      
+    for (let i = 0; i < trial_pool.length; i++) {
+        const candidate = trial_pool[i];
+      
+        const focal_used = used_focals.includes(candidate.focal);
+        const background_used = used_backgrounds.includes(candidate.background);
+      
+        if (focal_used || background_used) {
+        rejected_trials.push({
+            trial_id: candidate.trial_id,
+            condition: candidate.condition,
+            filepath: candidate.filepath,
+            focal: candidate.focal,
+            background: candidate.background,
+            reason: [
+            focal_used ? `focal already used: ${candidate.focal}` : null,
+            background_used ? `background already used: ${candidate.background}` : null
+            ].filter(Boolean).join(" | ")
+        });
+            continue;
+          }
+      
+          selected_trials.push(candidate);
+          used_focals.push(candidate.focal);
+          used_backgrounds.push(candidate.background);
+      
+          console.log("✓ Selected:", {
+            trial_id: candidate.trial_id,
+            condition: candidate.condition,
+            focal: candidate.focal,
+            background: candidate.background,
+            filepath: candidate.filepath
+          });
+      
+          if (selected_trials.length === REQUIRED_TRIALS) {
             break;
         };
 
