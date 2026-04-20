@@ -16,7 +16,7 @@ var informed_consent = {
         "<p>The purpose of the research is to understand how people evaluate visual scenes. By studying the ways people evaluate images, we can gain insights into human communication and how people process what they see.</p>" +
         "<br>"+
         "<p><strong>HOW LONG WILL THE RESEARCH LAST AND WHAT WILL I NEED TO DO?</strong></p>" +
-        "<p>Participation will take a total of about 10 minutes. You will be asked to view and describe a few images. Afterwards, you will also respond to a few brief post-survey questions.</p>" +
+        "<p>Participation will take a total of about 10 minutes. You will be asked to view a few images and select parts of the image descriptions according to the instructions. Afterwards, you will also respond to a few brief post-survey questions.</p>" +
         "<br>"+
         "<p><strong>ARE THERE ANY RISKS IF I PARTICIPATE?</strong></p>" +
         "<p>There are no anticipated risks or discomforts.</p>" +
@@ -113,7 +113,7 @@ var intro = {
     title: "Introduction", 
     // introduction text
     text:
-        "<p>Hi and welcome to the study!</p><br><p>In the following section, you will be asked to describe <strong>5 photos</strong>. Each image will be shown one at a time. There are no approximate word or time limits for describing the image. Please answer the questions by yourself carefully, and do not paste the texts from anywhere else.</p><br><p>After completing the photo descriptions, you will answer a few brief post-survey questions and demographic questions about your background and experiences.</p><br><p> When you are ready, please click the button below to begin the experiment.</p>",
+        "<p>Hi and welcome to the study!</p><br><p>In the following section, you will see <strong>5 photos</strong>. For each photo, please <strong>identify the focal subject/object</strong>, then <strong>highlight text in the image description</strong> that describes the focal and the background separately.</p><br><p><strong>Focal</strong>: The focal is the <strong>main object or subject</strong> in the image.</p><br><p><strong>Background</strong>: The background is <strong> everything else </strong> occurring in the scene that provides context and setting. Things that can not be directly observed from the image do not count as backgrounds. </p><br><p>Afterward, you will answer two brief questions about where you live and what languages you speak.</p><br><p>When you are ready, please click the button below to begin.</p>",
     buttonText: "Begin experiment",
     // render function renders the view
     render: function() {
@@ -171,102 +171,189 @@ var intro = {
 var main = {
     name: "main",
     render: function(CT) {
-        // fill variables in view-template
-        console.log('current trial');
-        console.log(exp.trial_info.main_trials[CT]);
         var viewTemplate = $("#main-view").html();
-
-        let focal = exp.trial_info.main_trials[CT]['focal'];
-        let background = exp.trial_info.main_trials[CT]['background'];
-        let filePath = exp.trial_info.main_trials[CT]['filePath'];
-        console.log("filePath");
-        console.log(filePath);
-        let category = exp.trial_info.main_trials[CT]['category'];
-
-       
+        var trial = exp.trial_info.main_trials[CT];
+        var filePath = trial.filepath || trial.filePath || "";
+        var condition = trial.condition || "";
+        var trialDescription = trial.description || "";
         $("#main").html(
             Mustache.render(viewTemplate, {
                 image_path: filePath,
-                instruction: "Please describe this image as if you were describing it to someone who is blind or has low vision."
+                trial_number: CT + 1,
+                total_trials: this.trials,
+                phase_title: "Step 1/3",
+                instruction: "Step 1: Look at the image and enter the focal subject/object."
             })
         );
 
-        window.scrollTo(0,0);
+        window.scrollTo(0, 0);
 
-        var startingTime = Date.now();
-        var typing_record = "";
-
-        var text_area = $('#description');
-        var char_count_el = $('<span id="char_count" class="char-count" style="font-size:12px; color:#666; display:block; width:100%; text-align:right; margin-top:-22px; padding-right:5px;"></span>');
-        text_area.after(char_count_el);
-
-
-        text_area.on("keyup input", function() {
-            var val = text_area.val();
-            char_count_el.text(val.length + " characters");
-        });
-
-        // Record only typed characters (not pasted): append each keypress to typing_record
-        text_area.on("keypress", function(e) {
-            if (e.key && e.key.length === 1) {
-                typing_record += e.key;
-            } else if (e.key === "Enter") {
-                typing_record += "\n";
-            }
-        });
-
-        // If user pastes into the textbox, clear the typing record so it stays 0 / empty
-        text_area.on("paste", function() {
-            typing_record = "";
-        });
-
-        // functions
-        function responses_complete() {
-            const description = $('#description').val().trim();
-            return description.length > 0;
+        var phaseIndex = 1;
+        var response = {
+            entered_focal: "",
+            selected_focal_sentences: [],
+            selected_background_sentences: [],
+            focal_description_na: false,
+            background_description_na: false
+        };
+        var phaseStartTime = Date.now();
+        var phaseTiming = {
+            step_1_seconds: 0,
+            step_2_seconds: 0,
+            step_3_seconds: 0
         };
 
-        // var q1_resp = $('input[name=slider1]:checked').val();
+        var setPhaseUI = function(step) {
+            phaseIndex = step;
+            $("#error").text("Please complete this step before continuing.").hide();
+            $("#phase-1-panel").toggle(step === 1);
+            $("#phase-2-panel").toggle(step === 2);
+            $("#phase-3-panel").toggle(step === 3);
 
-        // event functions
-        $("#next").on("click", function(e) {
-            // when input is selected, response and additional info stored in exp.trial_info
-            if (!responses_complete()) {
-                $('#error').css({"display": "block"});
-                // state = STATES.RESPOND;
-                // respond_area.css({"display" : "inline"});
-                // alt_text.css({"opacity": "1"});
-                // comment_area.css({"display" : "inline"});
-                // show_img.css({"display" : "block"});
-                // instruction.text("Now answer the questions below!");
-                // next.text("Continue!");
-                // next.css({"display": "none"});
-                // rt_article_read = Date.now();
+            var phaseTitle = step === 1 ? "Step 1/3" : step === 2 ? "Step 2/3" : "Step 3/3";
+            var instruction = "";
+            if (step === 1) {
+                instruction = "Step 1: Look at the image and enter the focal subject/object.";
+            } else if (step === 2) {
+                instruction = "Step 2: Highlight all the text spans that mention or describe the focal subject/object, or check N/A if none applies.";
+            } else {
+                instruction = "Step 3: Highlight all the text spans that mention or describe the background, or check N/A if none applies.";
             }
-            else {
-                rt_trial_done = Date.now();
-                var timeDescribingSeconds = (rt_trial_done - startingTime) / 1000;
-                var trial_data = {
-                    trial_number: CT + 1,
-                    focal: focal,
-                    background: background,
-                    category: category,
-                    filepath: filePath,
-                    description: $('#description').val().trim(),
-                    description_typing_record: typing_record,
-                    additional_notes: $('#image_additional_notes').val() ? $('#image_additional_notes').val().trim() : "",
-                    time_describing_seconds: timeDescribingSeconds
-                };
-                // console.log("FIRST TIME LOGGING THINGS!");
-                // console.log((rt_trial_done - startingTime) /1000);
-                // console.log(trial_data);
 
-                exp.trial_data.push(trial_data);
-                exp.findNextView();
+            $(".view .question").first().text("Trial " + (CT + 1) + " of " + main.trials + ": " + phaseTitle);
+            $(".question-box .question").text(instruction);
+        };
+
+        var renderSelections = function(listSelector, selections) {
+            var list = $(listSelector);
+            list.empty();
+
+            selections.forEach(function(sel, index) {
+                var li = $("<li></li>");
+                li.text(sel + " ");
+                var removeBtn = $("<button type='button'>Remove</button>");
+                removeBtn.on("click", function() {
+                    selections.splice(index, 1);
+                    renderSelections(listSelector, selections);
+                });
+                li.append(removeBtn);
+                list.append(li);
+            });
+        };
+
+        $("#description-block-focal").text(trialDescription || "(No description provided)");
+        $("#description-block-background").text(trialDescription || "(No description provided)");
+
+        $("#na-focal").on("change", function() {
+            if ($(this).is(":checked")) {
+                response.selected_focal_sentences.length = 0;
+                renderSelections("#selection-list-focal", response.selected_focal_sentences);
             }
-        })
+        });
 
-        // record trial starting time (startingTime set above with typing_record)
+        $("#na-background").on("change", function() {
+            if ($(this).is(":checked")) {
+                response.selected_background_sentences.length = 0;
+                renderSelections("#selection-list-background", response.selected_background_sentences);
+            }
+        });
+
+        $("#add-selection-focal").on("click", function() {
+            if ($("#na-focal").is(":checked")) {
+                alert("Uncheck N/A if you want to add highlighted text.");
+                return;
+            }
+            var selectedText = window.getSelection().toString().trim();
+            if (!selectedText) {
+                alert("Please highlight some text first.");
+                return;
+            }
+            if (response.selected_focal_sentences.includes(selectedText)) {
+                alert("That text is already in your focal selections.");
+                return;
+            }
+            $("#na-focal").prop("checked", false);
+            response.selected_focal_sentences.push(selectedText);
+            renderSelections("#selection-list-focal", response.selected_focal_sentences);
+        });
+
+        $("#add-selection-background").on("click", function() {
+            if ($("#na-background").is(":checked")) {
+                alert("Uncheck N/A if you want to add highlighted text.");
+                return;
+            }
+            var selectedText = window.getSelection().toString().trim();
+            if (!selectedText) {
+                alert("Please highlight some text first.");
+                return;
+            }
+            if (response.selected_background_sentences.includes(selectedText)) {
+                alert("That text is already in your background selections.");
+                return;
+            }
+            $("#na-background").prop("checked", false);
+            response.selected_background_sentences.push(selectedText);
+            renderSelections("#selection-list-background", response.selected_background_sentences);
+        });
+
+        setPhaseUI(1);
+
+        $("#next").on("click", function() {
+            var now = Date.now();
+
+            if (phaseIndex === 1) {
+                var focalInput = $("#focal_response").val().trim();
+                if (!focalInput) {
+                    $("#error").show();
+                    return;
+                }
+                response.entered_focal = focalInput;
+                phaseTiming.step_1_seconds = (now - phaseStartTime) / 1000;
+                phaseStartTime = Date.now();
+                setPhaseUI(2);
+                return;
+            }
+
+            if (phaseIndex === 2) {
+                var focalNa = $("#na-focal").is(":checked");
+                if (!focalNa && response.selected_focal_sentences.length === 0) {
+                    $("#error").text("Add at least one highlighted span, or check N/A if the focal is not described.").show();
+                    return;
+                }
+                response.focal_description_na = focalNa;
+                phaseTiming.step_2_seconds = (now - phaseStartTime) / 1000;
+                phaseStartTime = Date.now();
+                setPhaseUI(3);
+                return;
+            }
+
+            var backgroundNa = $("#na-background").is(":checked");
+            if (!backgroundNa && response.selected_background_sentences.length === 0) {
+                $("#error").text("Add at least one highlighted span, or check N/A if the background is not described.").show();
+                return;
+            }
+            response.background_description_na = backgroundNa;
+            phaseTiming.step_3_seconds = (now - phaseStartTime) / 1000;
+
+            exp.trial_data.push({
+                trial_number: CT + 1,
+                condition: condition,
+                filepath: filePath,
+                focal_label: trial.focal || "",
+                background_label: trial.background || "",
+                image_description: trialDescription,
+                entered_focal: response.entered_focal,
+                focal_description_na: response.focal_description_na,
+                background_description_na: response.background_description_na,
+                selected_focal_sentences: response.focal_description_na ? [] : response.selected_focal_sentences.slice(),
+                selected_background_sentences: response.background_description_na ? [] : response.selected_background_sentences.slice(),
+                step_1_seconds: phaseTiming.step_1_seconds,
+                step_2_seconds: phaseTiming.step_2_seconds,
+                step_3_seconds: phaseTiming.step_3_seconds
+            });
+
+            exp.findNextView();
+        });
     },
     trials: 10
 };
@@ -291,31 +378,32 @@ var postTest = {
             // prevents the form from submitting
             e.preventDefault();
 
-            // validation: check all required fields
-            var famUs = $('input[name=fam_us]:checked').val();
-            var famJp = $('input[name=fam_jp]:checked').val();
-            var famVisual = $('input[name=fam_visual]:checked').val();
-            var imgFam = $('input[name=img_familiar]:checked').val();
-            
-            // Check if img_familiar is "yes", then img_familiar_spec is also required
-            var imgFamSpecRequired = (imgFam === 'yes' && $('#img_familiar_spec').val().trim() === '');
+            var country = $('input[name=country]:checked').val();
+            var nlangChecked = $('input[name=native_lang]:checked');
+            var nlang = [];
+            nlangChecked.each(function() {
+                nlang.push($(this).val());
+            });
 
-            if (!famUs || !famJp || !famVisual || !imgFam || imgFamSpecRequired) {
+            var countryOtherRequired = (country === 'other' && $('#country_other').val().trim() === '');
+            var nlangOtherRequired = (nlang.includes('other') && $('#native_lang_other').val().trim() === '');
+
+            if (!country || nlang.length === 0 || countryOtherRequired || nlangOtherRequired) {
                 $('#error').css({"display": "block"});
                 return;
             }
 
             $('#error').css({"display": "none"});
 
-            // records the post test info (page 1: familiarity + image familiarity)
-            exp.global_data.familiar_us = famUs;
-            exp.global_data.familiar_jp = famJp;
-            exp.global_data.familiar_visual = famVisual;
+            exp.global_data.country = country;
+            exp.global_data.country_other = (country === 'other' ? $('#country_other').val().trim() : "");
+            exp.global_data.native_lang = nlang;
+            exp.global_data.native_lang_other = (nlang.includes('other') ? $('#native_lang_other').val().trim() : "");
 
-            exp.global_data.image_familiar = imgFam;
-            exp.global_data.image_familiar_spec = (imgFam === 'yes' ? $('#img_familiar_spec').val().trim() : "");
+            exp.global_data.endTime = Date.now();
+            exp.global_data.timeSpent =
+                (exp.global_data.endTime - exp.global_data.startTime) / 60000;
 
-            // moves to the next view
             exp.findNextView();
         });
     },

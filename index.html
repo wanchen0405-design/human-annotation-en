@@ -105,115 +105,82 @@
             </div>
         </script>
 
-        <!-- main view: Description writing -->
+        <!-- main view: Three-step annotation -->
         <script id="main-view" type="text/html">
             <div class="view">
-    
-                <div id="q1_box">
-                    {{# image_path }}
-                    <div class="picture" style="margin-bottom: 30px; display: block;">
-                        <img src="{{ image_path }}" id="picture" alt="picture" style="max-width: 660px; max-height: 650px; display: block; margin: 0 auto;" />
-                    </div>
-                    {{/ image_path }}
-    
-                <!-- Description question -->
-                <div class="question-box" style="margin-top: 25px; margin-bottom: 8px;">
-                    <p class="question">{{{ instruction }}}</p>
-                    <div style="margin-top: 0px;">
-                        <textarea id="description" style="display: block; max-width: 650px; width: 100%; margin: 0 auto 10px; padding: 8px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box;"></textarea>
-                    </div>
+                <p class="question" style="font-weight: 700; margin-bottom: 16px;">
+                    Trial {{ trial_number }} of {{ total_trials }}: {{ phase_title }}
+                </p>
+
+                {{# image_path }}
+                <div class="picture" style="margin-bottom: 24px; display: block;">
+                    <img src="{{ image_path }}" id="picture" alt="picture" style="max-width: 660px; max-height: 650px; display: block; margin: 0 auto;" />
                 </div>
-    
-                <!-- Open-ended, optional short-answer question -->
-                <p style="margin-top: 25px; margin-bottom: 8px;">(Optional) Is there anything else you find interesting or would like to share about this image?</p>
-                <textarea id="image_additional_notes" rows="4" style="display: block; max-width: 650px; width: 100%; margin: 0 auto 10px; padding: 8px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box;"></textarea>
+                {{/ image_path }}
+
+                <div class="question-box" style="margin-top: 10px; margin-bottom: 12px;">
+                    <p class="question">{{{ instruction }}}</p>
+                </div>
+
+                <div id="phase-1-panel" style="display:none;">
+                    <input type="text" id="focal_response" placeholder="Type the focal subject/object" style="display:block; max-width:650px; width:100%; margin:0 auto 10px; padding:10px; border:1px solid #ccc; border-radius:4px; box-sizing:border-box;" />
+                </div>
+
+                <div id="phase-2-panel" style="display:none; max-width: 750px; margin: 0 auto;">
+                    <p style="font-size: 14px; color: #555;">Image description:</p>
+                    <div id="description-block-focal" style="margin-bottom: 8px; padding: 10px; border: 1px solid #ddd; border-radius: 4px; background: #fafafa; text-align: left; user-select: text;"></div>
+                    <label style="display:block; margin-bottom:10px; text-align:left;">
+                        <input type="checkbox" id="na-focal" />
+                        The description does not mention or describe the focal subject/object.
+                    </label>
+                    <button id="add-selection-focal" type="button" style="margin-bottom: 8px;">Add highlighted text</button>
+                    <ul id="selection-list-focal" style="text-align: left; max-width: 750px; margin: 0 auto; padding-left: 20px;"></ul>
+                </div>
+
+                <div id="phase-3-panel" style="display:none; max-width: 750px; margin: 0 auto;">
+                    <p style="font-size: 14px; color: #555;">Image description:</p>
+                    <div id="description-block-background" style="margin-bottom: 8px; padding: 10px; border: 1px solid #ddd; border-radius: 4px; background: #fafafa; text-align: left; user-select: text;"></div>
+                    <label style="display:block; margin-bottom:10px; text-align:left;">
+                        <input type="checkbox" id="na-background" />
+                        The description does not mention or describe the background.
+                    </label>
+                    <button id="add-selection-background" type="button" style="margin-bottom: 8px;">Add highlighted text</button>
+                    <ul id="selection-list-background" style="text-align: left; max-width: 750px; margin: 0 auto; padding-left: 20px;"></ul>
+                </div>
 
                 <button id="next">Continue</button>
-
-                <p id="error" class="help-text" style="display: none;">Please provide a description before continuing.</p>
-
+                <p id="error" class="help-text" style="display: none;">Please complete this step before continuing.</p>
             </div>
         </script>
 
         <!-- post test view -->
         <script id="post-test-view" type="text/html">
-    
+            <div class="view">
             {{# title }}
             <h1>{{ title }}</h1>
             {{/ title }}
-            {{# text }}
-            <section class="text-container">
-                <p class="text">{{ text }}</p>
-            </section>
-            {{/ text }}
             <form>
             <section class="text-container">
-                <div style="display: flex; flex-direction: column; gap: 18px; width: 100%; max-width: 650px; margin: 0 auto;">
-                    <div style="margin: 16px 0;">
-                        <p style="margin: 0;">How familiar are you with U.S. culture? <span style="color: red;">*</span></p>
-                        <ul class="answer-container likert" style="margin-top: 6px; font-size: 17px; line-height: 27px; font-family: 'Lato','Noto Sans', sans-serif;">
-                            <li class="labels1">Not at all</li>
-                            <li><input type="radio" name="fam_us" value="1" required /></li>
-                            <li><input type="radio" name="fam_us" value="2" /></li>
-                            <li><input type="radio" name="fam_us" value="3" /></li>
-                            <li><input type="radio" name="fam_us" value="4" /></li>
-                            <li><input type="radio" name="fam_us" value="5" /></li>
-                            <li><input type="radio" name="fam_us" value="6" /></li>
-                            <li><input type="radio" name="fam_us" value="7" /></li>
-                            <li class="labels1">Very much</li>
-                        </ul>
-                    </div>
-
-                    <div style="margin: 16px 0;">
-                        <p style="margin: 0;">How familiar are you with Japanese culture? <span style="color: red;">*</span></p>
-                        <ul class="answer-container likert" style="margin-top: 6px; font-size: 17px; line-height: 27px; font-family: 'Lato','Noto Sans', sans-serif;">
-                            <li class="labels1">Not at all</li>
-                            <li><input type="radio" name="fam_jp" value="1" required /></li>
-                            <li><input type="radio" name="fam_jp" value="2" /></li>
-                            <li><input type="radio" name="fam_jp" value="3" /></li>
-                            <li><input type="radio" name="fam_jp" value="4" /></li>
-                            <li><input type="radio" name="fam_jp" value="5" /></li>
-                            <li><input type="radio" name="fam_jp" value="6" /></li>
-                            <li><input type="radio" name="fam_jp" value="7" /></li>
-                            <li class="labels1">Very much</li>
-                        </ul>
-                    </div>
-
-                    <div style="margin: 16px 0;">
-                        <p style="margin: 0;">How familiar are you with photography or other visual arts (e.g., taking photos, editing, painting, or design)? <span style="color: red;">*</span></p>
-                        <ul class="answer-container likert" style="margin-top: 6px; font-size: 17px; line-height: 27px; font-family: 'Lato','Noto Sans', sans-serif;">
-                            <li class="labels1">Not at all</li>
-                            <li><input type="radio" name="fam_visual" value="1" required /></li>
-                            <li><input type="radio" name="fam_visual" value="2" /></li>
-                            <li><input type="radio" name="fam_visual" value="3" /></li>
-                            <li><input type="radio" name="fam_visual" value="4" /></li>
-                            <li><input type="radio" name="fam_visual" value="5" /></li>
-                            <li><input type="radio" name="fam_visual" value="6" /></li>
-                            <li><input type="radio" name="fam_visual" value="7" /></li>
-                            <li class="labels1">Very much</li>
-                        </ul>
-                    </div>
-                </div>
-            </section>
-
-            <section class="text-container" style="margin-top: 20px;">
-                <div style="max-width: 650px; margin: 0 auto; display: flex; flex-direction: column; gap: 8px;">
-                    <p style="margin: 0;">Did any image feel familiar or recognizable from past experience? <span style="color: red;">*</span></p>
+                <div style="margin: 16px 0;">
+                    <p style="margin: 0; max-width: none;">What is your country of residence? <span style="color: red;">*</span></p>
                     <ul class="mc-list" style="font-size: 15px; line-height: 27px; font-family: 'Lato','Noto Sans', sans-serif; margin-top: 6px;">
-                        <li>
-                            <label><input type="radio" name="img_familiar" value="yes" required /> Yes (Please Specify)</label>
-                            <input type="text" id="img_familiar_spec" style="max-width: 400px; margin-left: 10px;" />
-                        </li>
-                        <li>
-                            <label><input type="radio" name="img_familiar" value="no" /> No</label>
-                        </li>
+                        <li><label><input type="radio" name="country" value="us" required /> the U.S.</label></li>
+                        <li><label><input type="radio" name="country" value="jp" /> Japan</label></li>
+                        <li><label><input type="radio" name="country" value="other" /> Other (Please Specify)</label> <input type="text" id="country_other" style="max-width: 300px; margin-left: 10px;" /></li>
+                    </ul>
+                </div>
+
+                <div style="margin: 16px 0;">
+                    <p style="margin: 0; max-width: none;">What language(s) do you speak at home? Please select all that apply. <span style="color: red;">*</span></p>
+                    <ul class="mc-list" style="font-size: 15px; line-height: 27px; font-family: 'Lato','Noto Sans', sans-serif; margin-top: 6px;">
+                        <li><label><input type="checkbox" name="native_lang" value="en" /> English</label></li>
+                        <li><label><input type="checkbox" name="native_lang" value="jp" /> Japanese</label></li>
+                        <li><label><input type="checkbox" name="native_lang" value="other" /> Other (Please Specify)</label> <input type="text" id="native_lang_other" style="max-width: 300px; margin-left: 10px;" /></li>
                     </ul>
                 </div>
             </section>
 
-            <!-- demographics/comments moved to separate page (postTest2) -->
-
-            <p id="error" class="help-text" style="display: none; color: red; text-align: center; margin: 20px auto; max-width: 650px;">Please answer all the questions before continuing to the next page.</p>
+            <p id="error" class="help-text" style="display: none; color: red; text-align: center; margin: 20px auto; max-width: 650px;">Please answer all required questions before continuing.</p>
             {{# buttonText }}
             <button id="next">{{ buttonText }}</button>
             {{/ buttonText }}
@@ -221,6 +188,7 @@
             <button id="next">Next</button>
             {{/ buttonText }}
             </form>
+            </div>
         </script>
 
         <!-- post test view (page 2: demographics & comments) -->
