@@ -16,7 +16,7 @@ var informed_consent = {
         "<p>The purpose of the research is to understand how people evaluate visual scenes. By studying the ways people evaluate images, we can gain insights into human communication and how people process what they see.</p>" +
         "<br>"+
         "<p><strong>HOW LONG WILL THE RESEARCH LAST AND WHAT WILL I NEED TO DO?</strong></p>" +
-        "<p>Participation will take a total of about 10 minutes. You will be asked to view a few images and select parts of the image descriptions according to the instructions. Afterwards, you will also respond to a few brief post-survey questions.</p>" +
+        "<p>Participation will take a total of about 5 minutes. You will be asked to view a few images and select parts of the image descriptions according to the instructions. Afterwards, you will also respond to a few brief post-survey questions.</p>" +
         "<br>"+
         "<p><strong>ARE THERE ANY RISKS IF I PARTICIPATE?</strong></p>" +
         "<p>There are no anticipated risks or discomforts.</p>" +
@@ -113,7 +113,7 @@ var intro = {
     title: "Introduction", 
     // introduction text
     text:
-        "<p>Hi and welcome to the study!</p><br><p>In the following section, you will see <strong>5 photos</strong>. For each photo, please <strong>identify the focal subject/object</strong>, then <strong>highlight text in the image description</strong> that describes the focal and the background separately.</p><br><p><strong>Focal</strong>: The focal is the <strong>main object or subject</strong> in the image.</p><br><p><strong>Background</strong>: The background is <strong> everything else </strong> occurring in the scene that provides context and setting. Things that can not be directly observed from the image do not count as backgrounds. </p><br><p>Afterward, you will answer two brief questions about where you live and what languages you speak.</p><br><p>When you are ready, please click the button below to begin.</p>",
+        "<p>Hi and welcome to the study!</p><br><p>In the following section, you will see <strong>5 photos</strong>. For each photo, you will see both the image and its description, and then complete four highlighting steps.</p><br><p><strong>Step 1</strong>: In the text descriptions, highlight the <strong>main subject/object</strong> of the image.</p><br><p><strong>Step 2</strong>: Highlight <strong>all text</strong> that refers to the <strong>main subject/object</strong> and <strong>all text that describes it</strong> (include both identifying mentions and descriptive details).</p><br><p><strong>Step 3</strong>: Highlight <strong>all text</strong> that describes or is related to the <strong>background</strong>.</p><br><p><strong>Step 4</strong>: Review unhighlighted text and add any missing highlights as either main object-related or background-related.</p><br><p>The main subject/object is the <strong>most central and obvious object/subject</strong> in the image.</p><br><p>The background is <strong> everything else </strong> occurring in the scene that provides context and setting. Things that can not be directly observed from the image do not count as backgrounds. </p><br><p>Afterward, you will answer two brief questions about where you live and what languages you speak.</p><br><p>When you are ready, please click the button below to begin.</p>",
     buttonText: "Begin experiment",
     // render function renders the view
     render: function() {
@@ -181,8 +181,8 @@ var main = {
                 image_path: filePath,
                 trial_number: CT + 1,
                 total_trials: this.trials,
-                phase_title: "Step 1/3",
-                instruction: "Step 1: Look at the image and enter the focal subject/object."
+                phase_title: "Step 1/4",
+                instruction: "Step 1: Look at the image and highlight the main subject/object in the text descriptions."
             })
         );
 
@@ -190,17 +190,29 @@ var main = {
 
         var phaseIndex = 1;
         var response = {
-            entered_focal: "",
+            selected_main_object_spans: [],
             selected_focal_sentences: [],
             selected_background_sentences: [],
+            additional_focal_sentences: [],
+            additional_background_sentences: [],
+            main_object_description_na: false,
             focal_description_na: false,
-            background_description_na: false
+            background_description_na: false,
+            review_complete_checked: false
+        };
+        var highlightRanges = {
+            step1: [],
+            focal: [],
+            background: [],
+            reviewFocal: [],
+            reviewBackground: []
         };
         var phaseStartTime = Date.now();
         var phaseTiming = {
             step_1_seconds: 0,
             step_2_seconds: 0,
-            step_3_seconds: 0
+            step_3_seconds: 0,
+            step_4_seconds: 0
         };
 
         var setPhaseUI = function(step) {
@@ -209,22 +221,144 @@ var main = {
             $("#phase-1-panel").toggle(step === 1);
             $("#phase-2-panel").toggle(step === 2);
             $("#phase-3-panel").toggle(step === 3);
+            $("#phase-4-panel").toggle(step === 4);
 
-            var phaseTitle = step === 1 ? "Step 1/3" : step === 2 ? "Step 2/3" : "Step 3/3";
+            var phaseTitle = step === 1 ? "Step 1/4" : step === 2 ? "Step 2/4" : step === 3 ? "Step 3/4" : "Step 4/4";
             var instruction = "";
             if (step === 1) {
-                instruction = "Step 1: Look at the image and enter the focal subject/object.";
+                instruction = "Step 1: Look at the image and highlight the main subject/object in the text descriptions, or check N/A if none applies.";
             } else if (step === 2) {
-                instruction = "Step 2: Highlight all the text spans that mention or describe the focal subject/object, or check N/A if none applies.";
+                instruction = "Step 2: Highlight all text that refers to the main subject/object and all text that describes it (include both identifying mentions and descriptive details), or check N/A if none applies.";
+            } else if (step === 3) {
+                instruction = "Step 3: Highlight all text spans that describe or are related to the background, or check N/A if none applies.";
             } else {
-                instruction = "Step 3: Highlight all the text spans that mention or describe the background, or check N/A if none applies.";
+                instruction = "Step 4: Texts in black are ones you have not yet highlighted. Please highlight all texts describing the main subject/object (including its description), and the background. If none applies, then check that remaining text is neither the main subject/object nor the background.";
             }
 
             $(".view .question").first().text("Trial " + (CT + 1) + " of " + main.trials + ": " + phaseTitle);
             $(".question-box .question").text(instruction);
+
+            if (step === 4) {
+                renderReviewText();
+            }
         };
 
-        var renderSelections = function(listSelector, selections) {
+        var escapeHtml = function(text) {
+            return String(text)
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#039;");
+        };
+
+        var getSelectionRangeWithin = function(containerEl) {
+            var selection = window.getSelection();
+            if (!selection || selection.rangeCount === 0) {
+                return null;
+            }
+            var range = selection.getRangeAt(0);
+            if (!containerEl.contains(range.commonAncestorContainer)) {
+                return null;
+            }
+            var selectedText = selection.toString().trim();
+            if (!selectedText) {
+                return null;
+            }
+            var preRange = range.cloneRange();
+            preRange.selectNodeContents(containerEl);
+            preRange.setEnd(range.startContainer, range.startOffset);
+            var start = preRange.toString().length;
+            var end = start + range.toString().length;
+            if (end <= start) {
+                return null;
+            }
+            return {
+                start: start,
+                end: end,
+                text: range.toString()
+            };
+        };
+
+        var mergeRanges = function(ranges) {
+            if (!ranges || ranges.length === 0) {
+                return [];
+            }
+            var sorted = ranges.slice().sort(function(a, b) {
+                return a.start - b.start;
+            });
+            var merged = [];
+            sorted.forEach(function(r) {
+                if (merged.length === 0) {
+                    merged.push({ start: r.start, end: r.end });
+                    return;
+                }
+                var prev = merged[merged.length - 1];
+                if (r.start <= prev.end) {
+                    prev.end = Math.max(prev.end, r.end);
+                } else {
+                    merged.push({ start: r.start, end: r.end });
+                }
+            });
+            return merged;
+        };
+
+        var renderHighlightedText = function(containerSelector, descriptionText, ranges) {
+            var container = $(containerSelector);
+            var baseText = descriptionText || "(No description provided)";
+            var merged = mergeRanges(ranges || []);
+            if (merged.length === 0) {
+                container.text(baseText);
+                return;
+            }
+            var html = "";
+            var cursor = 0;
+            merged.forEach(function(r) {
+                var safeStart = Math.max(0, Math.min(baseText.length, r.start));
+                var safeEnd = Math.max(0, Math.min(baseText.length, r.end));
+                if (safeStart > cursor) {
+                    html += escapeHtml(baseText.slice(cursor, safeStart));
+                }
+                if (safeEnd > safeStart) {
+                    html += "<mark class='description-highlight'>" + escapeHtml(baseText.slice(safeStart, safeEnd)) + "</mark>";
+                }
+                cursor = Math.max(cursor, safeEnd);
+            });
+            if (cursor < baseText.length) {
+                html += escapeHtml(baseText.slice(cursor));
+            }
+            container.html(html);
+        };
+
+        var renderReviewText = function() {
+            var container = $("#description-block-review");
+            var baseText = trialDescription || "(No description provided)";
+            var previousRanges = mergeRanges(
+                highlightRanges.step1
+                    .concat(highlightRanges.focal)
+                    .concat(highlightRanges.background)
+            );
+            var reviewRanges = mergeRanges(
+                highlightRanges.reviewFocal.concat(highlightRanges.reviewBackground)
+            );
+
+            var html = "";
+            for (var i = 0; i < baseText.length; i++) {
+                var ch = escapeHtml(baseText.charAt(i));
+                var inReview = reviewRanges.some(function(r) { return i >= r.start && i < r.end; });
+                var inPrevious = previousRanges.some(function(r) { return i >= r.start && i < r.end; });
+                if (inReview) {
+                    html += "<mark class='description-highlight'>" + ch + "</mark>";
+                } else if (inPrevious) {
+                    html += "<span class='review-previous-highlight'>" + ch + "</span>";
+                } else {
+                    html += "<span class='review-unhighlighted-text'>" + ch + "</span>";
+                }
+            }
+            container.html(html);
+        };
+
+        var renderSelections = function(listSelector, selections, ranges, blockSelector) {
             var list = $(listSelector);
             list.empty();
 
@@ -234,28 +368,128 @@ var main = {
                 var removeBtn = $("<button type='button'>Remove</button>");
                 removeBtn.on("click", function() {
                     selections.splice(index, 1);
-                    renderSelections(listSelector, selections);
+                    if (ranges) {
+                        ranges.splice(index, 1);
+                    }
+                    renderSelections(listSelector, selections, ranges, blockSelector);
+                    if (blockSelector) {
+                        renderHighlightedText(blockSelector, trialDescription, ranges || []);
+                    } else if (listSelector === "#selection-list-review-focal" || listSelector === "#selection-list-review-background") {
+                        renderReviewText();
+                    }
                 });
                 li.append(removeBtn);
                 list.append(li);
             });
         };
 
-        $("#description-block-focal").text(trialDescription || "(No description provided)");
-        $("#description-block-background").text(trialDescription || "(No description provided)");
+        var hasUnhighlightedTextAfterFirstThreeSteps = function() {
+            var baseText = trialDescription || "";
+            if (!baseText) {
+                return false;
+            }
+            var previousRanges = mergeRanges(
+                highlightRanges.step1
+                    .concat(highlightRanges.focal)
+                    .concat(highlightRanges.background)
+            );
+            for (var i = 0; i < baseText.length; i++) {
+                if (!/\S/.test(baseText.charAt(i))) {
+                    continue;
+                }
+                var alreadyHighlighted = previousRanges.some(function(r) {
+                    return i >= r.start && i < r.end;
+                });
+                if (!alreadyHighlighted) {
+                    return true;
+                }
+            }
+            return false;
+        };
+
+        var finalizeTrial = function(step4Skipped) {
+            exp.trial_data.push({
+                trial_number: CT + 1,
+                condition: condition,
+                filepath: filePath,
+                focal_label: trial.focal || "",
+                background_label: trial.background || "",
+                image_description: trialDescription,
+                main_object_description_na: response.main_object_description_na,
+                selected_main_object_spans: response.main_object_description_na ? [] : response.selected_main_object_spans.slice(),
+                focal_description_na: response.focal_description_na,
+                background_description_na: response.background_description_na,
+                selected_focal_sentences: response.focal_description_na ? [] : response.selected_focal_sentences.slice(),
+                selected_background_sentences: response.background_description_na ? [] : response.selected_background_sentences.slice(),
+                additional_focal_sentences: response.additional_focal_sentences.slice(),
+                additional_background_sentences: response.additional_background_sentences.slice(),
+                review_complete_checked: response.review_complete_checked,
+                step_1_seconds: phaseTiming.step_1_seconds,
+                step_2_seconds: phaseTiming.step_2_seconds,
+                step_3_seconds: phaseTiming.step_3_seconds,
+                step_4_seconds: phaseTiming.step_4_seconds,
+                step_4_skipped: step4Skipped
+            });
+
+            exp.findNextView();
+        };
+
+        renderHighlightedText("#description-block-step1", trialDescription, highlightRanges.step1);
+        renderHighlightedText("#description-block-focal", trialDescription, highlightRanges.focal);
+        renderHighlightedText("#description-block-background", trialDescription, highlightRanges.background);
+        renderReviewText();
 
         $("#na-focal").on("change", function() {
             if ($(this).is(":checked")) {
                 response.selected_focal_sentences.length = 0;
-                renderSelections("#selection-list-focal", response.selected_focal_sentences);
+                highlightRanges.focal.length = 0;
+                renderSelections("#selection-list-focal", response.selected_focal_sentences, highlightRanges.focal, "#description-block-focal");
+                renderHighlightedText("#description-block-focal", trialDescription, highlightRanges.focal);
+            }
+        });
+
+        $("#na-step1").on("change", function() {
+            if ($(this).is(":checked")) {
+                response.selected_main_object_spans.length = 0;
+                highlightRanges.step1.length = 0;
+                renderSelections("#selection-list-step1", response.selected_main_object_spans, highlightRanges.step1, "#description-block-step1");
+                renderHighlightedText("#description-block-step1", trialDescription, highlightRanges.step1);
             }
         });
 
         $("#na-background").on("change", function() {
             if ($(this).is(":checked")) {
                 response.selected_background_sentences.length = 0;
-                renderSelections("#selection-list-background", response.selected_background_sentences);
+                highlightRanges.background.length = 0;
+                renderSelections("#selection-list-background", response.selected_background_sentences, highlightRanges.background, "#description-block-background");
+                renderHighlightedText("#description-block-background", trialDescription, highlightRanges.background);
             }
+        });
+
+        $("#add-selection-step1").on("click", function() {
+            if ($("#na-step1").is(":checked")) {
+                alert("Uncheck N/A if you want to add highlighted text.");
+                return;
+            }
+            var containerEl = $("#description-block-step1")[0];
+            var selectionRange = getSelectionRangeWithin(containerEl);
+            if (!selectionRange) {
+                alert("Please highlight text inside the description first.");
+                return;
+            }
+            if (response.selected_main_object_spans.includes(selectionRange.text)) {
+                alert("That text is already in your step 1 selections.");
+                return;
+            }
+            $("#na-step1").prop("checked", false);
+            response.selected_main_object_spans.push(selectionRange.text);
+            highlightRanges.step1.push({
+                start: selectionRange.start,
+                end: selectionRange.end
+            });
+            renderSelections("#selection-list-step1", response.selected_main_object_spans, highlightRanges.step1, "#description-block-step1");
+            renderHighlightedText("#description-block-step1", trialDescription, highlightRanges.step1);
+            window.getSelection().removeAllRanges();
         });
 
         $("#add-selection-focal").on("click", function() {
@@ -263,18 +497,26 @@ var main = {
                 alert("Uncheck N/A if you want to add highlighted text.");
                 return;
             }
-            var selectedText = window.getSelection().toString().trim();
-            if (!selectedText) {
-                alert("Please highlight some text first.");
+            var containerEl = $("#description-block-focal")[0];
+            var selectionRange = getSelectionRangeWithin(containerEl);
+            if (!selectionRange) {
+                alert("Please highlight text inside the description first.");
                 return;
             }
+            var selectedText = selectionRange.text;
             if (response.selected_focal_sentences.includes(selectedText)) {
                 alert("That text is already in your focal selections.");
                 return;
             }
             $("#na-focal").prop("checked", false);
             response.selected_focal_sentences.push(selectedText);
-            renderSelections("#selection-list-focal", response.selected_focal_sentences);
+            highlightRanges.focal.push({
+                start: selectionRange.start,
+                end: selectionRange.end
+            });
+            renderSelections("#selection-list-focal", response.selected_focal_sentences, highlightRanges.focal, "#description-block-focal");
+            renderHighlightedText("#description-block-focal", trialDescription, highlightRanges.focal);
+            window.getSelection().removeAllRanges();
         });
 
         $("#add-selection-background").on("click", function() {
@@ -282,18 +524,89 @@ var main = {
                 alert("Uncheck N/A if you want to add highlighted text.");
                 return;
             }
-            var selectedText = window.getSelection().toString().trim();
-            if (!selectedText) {
-                alert("Please highlight some text first.");
+            var containerEl = $("#description-block-background")[0];
+            var selectionRange = getSelectionRangeWithin(containerEl);
+            if (!selectionRange) {
+                alert("Please highlight text inside the description first.");
                 return;
             }
+            var selectedText = selectionRange.text;
             if (response.selected_background_sentences.includes(selectedText)) {
                 alert("That text is already in your background selections.");
                 return;
             }
             $("#na-background").prop("checked", false);
             response.selected_background_sentences.push(selectedText);
-            renderSelections("#selection-list-background", response.selected_background_sentences);
+            highlightRanges.background.push({
+                start: selectionRange.start,
+                end: selectionRange.end
+            });
+            renderSelections("#selection-list-background", response.selected_background_sentences, highlightRanges.background, "#description-block-background");
+            renderHighlightedText("#description-block-background", trialDescription, highlightRanges.background);
+            window.getSelection().removeAllRanges();
+        });
+
+        $("#review-complete").on("change", function() {
+            if ($(this).is(":checked")) {
+                response.additional_focal_sentences.length = 0;
+                response.additional_background_sentences.length = 0;
+                highlightRanges.reviewFocal.length = 0;
+                highlightRanges.reviewBackground.length = 0;
+                renderSelections("#selection-list-review-focal", response.additional_focal_sentences, highlightRanges.reviewFocal, null);
+                renderSelections("#selection-list-review-background", response.additional_background_sentences, highlightRanges.reviewBackground, null);
+                renderReviewText();
+            }
+        });
+
+        var addReviewSelection = function(type) {
+            var selectionRange = getSelectionRangeWithin($("#description-block-review")[0]);
+            if (!selectionRange) {
+                alert("Please highlight text inside the review description first.");
+                return;
+            }
+            var overlapExists = mergeRanges(
+                highlightRanges.step1
+                    .concat(highlightRanges.focal)
+                    .concat(highlightRanges.background)
+                    .concat(highlightRanges.reviewFocal)
+                    .concat(highlightRanges.reviewBackground)
+            ).some(function(r) {
+                return selectionRange.start < r.end && selectionRange.end > r.start;
+            });
+            if (overlapExists) {
+                alert("Please select only black text that has not been highlighted before.");
+                return;
+            }
+
+            $("#review-complete").prop("checked", false);
+            var selectedText = selectionRange.text;
+            if (type === "focal") {
+                if (response.additional_focal_sentences.includes(selectedText)) {
+                    alert("That text is already in additional main object-related selections.");
+                    return;
+                }
+                response.additional_focal_sentences.push(selectedText);
+                highlightRanges.reviewFocal.push({ start: selectionRange.start, end: selectionRange.end });
+                renderSelections("#selection-list-review-focal", response.additional_focal_sentences, highlightRanges.reviewFocal, null);
+            } else {
+                if (response.additional_background_sentences.includes(selectedText)) {
+                    alert("That text is already in additional background-related selections.");
+                    return;
+                }
+                response.additional_background_sentences.push(selectedText);
+                highlightRanges.reviewBackground.push({ start: selectionRange.start, end: selectionRange.end });
+                renderSelections("#selection-list-review-background", response.additional_background_sentences, highlightRanges.reviewBackground, null);
+            }
+            renderReviewText();
+            window.getSelection().removeAllRanges();
+        };
+
+        $("#add-review-focal").on("click", function() {
+            addReviewSelection("focal");
+        });
+
+        $("#add-review-background").on("click", function() {
+            addReviewSelection("background");
         });
 
         setPhaseUI(1);
@@ -302,12 +615,13 @@ var main = {
             var now = Date.now();
 
             if (phaseIndex === 1) {
-                var focalInput = $("#focal_response").val().trim();
-                if (!focalInput) {
+                var step1Na = $("#na-step1").is(":checked");
+                if (!step1Na && response.selected_main_object_spans.length === 0) {
+                    $("#error").text("Highlight at least one text span that identifies the main subject/object, or check N/A if none applies.").show();
                     $("#error").show();
                     return;
                 }
-                response.entered_focal = focalInput;
+                response.main_object_description_na = step1Na;
                 phaseTiming.step_1_seconds = (now - phaseStartTime) / 1000;
                 phaseStartTime = Date.now();
                 setPhaseUI(2);
@@ -317,7 +631,7 @@ var main = {
             if (phaseIndex === 2) {
                 var focalNa = $("#na-focal").is(":checked");
                 if (!focalNa && response.selected_focal_sentences.length === 0) {
-                    $("#error").text("Add at least one highlighted span, or check N/A if the focal is not described.").show();
+                    $("#error").text("Add at least one highlighted span that covers the main subject/object and/or its description, or check N/A if none applies.").show();
                     return;
                 }
                 response.focal_description_na = focalNa;
@@ -327,32 +641,38 @@ var main = {
                 return;
             }
 
-            var backgroundNa = $("#na-background").is(":checked");
-            if (!backgroundNa && response.selected_background_sentences.length === 0) {
-                $("#error").text("Add at least one highlighted span, or check N/A if the background is not described.").show();
+            if (phaseIndex === 3) {
+                var backgroundNa = $("#na-background").is(":checked");
+                if (!backgroundNa && response.selected_background_sentences.length === 0) {
+                    $("#error").text("Add at least one highlighted span, or check N/A if the background is not described.").show();
+                    return;
+                }
+                response.background_description_na = backgroundNa;
+                phaseTiming.step_3_seconds = (now - phaseStartTime) / 1000;
+                if (!hasUnhighlightedTextAfterFirstThreeSteps()) {
+                    response.review_complete_checked = true;
+                    phaseTiming.step_4_seconds = 0;
+                    finalizeTrial(true);
+                    return;
+                }
+                phaseStartTime = Date.now();
+                setPhaseUI(4);
                 return;
             }
-            response.background_description_na = backgroundNa;
-            phaseTiming.step_3_seconds = (now - phaseStartTime) / 1000;
 
-            exp.trial_data.push({
-                trial_number: CT + 1,
-                condition: condition,
-                filepath: filePath,
-                focal_label: trial.focal || "",
-                background_label: trial.background || "",
-                image_description: trialDescription,
-                entered_focal: response.entered_focal,
-                focal_description_na: response.focal_description_na,
-                background_description_na: response.background_description_na,
-                selected_focal_sentences: response.focal_description_na ? [] : response.selected_focal_sentences.slice(),
-                selected_background_sentences: response.background_description_na ? [] : response.selected_background_sentences.slice(),
-                step_1_seconds: phaseTiming.step_1_seconds,
-                step_2_seconds: phaseTiming.step_2_seconds,
-                step_3_seconds: phaseTiming.step_3_seconds
-            });
-
-            exp.findNextView();
+            if (phaseIndex === 4) {
+                var reviewComplete = $("#review-complete").is(":checked");
+                var hasAdditionalSelections =
+                    response.additional_focal_sentences.length > 0 ||
+                    response.additional_background_sentences.length > 0;
+                if (!reviewComplete && !hasAdditionalSelections) {
+                    $("#error").text("Add missing highlights in Step 4, or check that remaining text is neither main object-related nor background-related.").show();
+                    return;
+                }
+                response.review_complete_checked = reviewComplete;
+                phaseTiming.step_4_seconds = (now - phaseStartTime) / 1000;
+                finalizeTrial(false);
+            }
         });
     },
     trials: 10

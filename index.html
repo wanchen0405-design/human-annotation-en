@@ -105,7 +105,7 @@
             </div>
         </script>
 
-        <!-- main view: Three-step annotation -->
+        <!-- main view: Four-step annotation -->
         <script id="main-view" type="text/html">
             <div class="view">
                 <p class="question" style="font-weight: 700; margin-bottom: 16px;">
@@ -122,30 +122,54 @@
                     <p class="question">{{{ instruction }}}</p>
                 </div>
 
-                <div id="phase-1-panel" style="display:none;">
-                    <input type="text" id="focal_response" placeholder="Type the focal subject/object" style="display:block; max-width:650px; width:100%; margin:0 auto 10px; padding:10px; border:1px solid #ccc; border-radius:4px; box-sizing:border-box;" />
+                <div id="phase-1-panel" style="display:none; max-width: 750px; margin: 0 auto;">
+                    <p style="font-size: 14px; color: #555; max-width: 650px; margin: 0 auto 8px; text-align: left;">Image description:</p>
+                    <div id="description-block-step1" style="max-width: 650px; margin: 0 auto 8px; padding: 10px; border: 1px solid #ddd; border-radius: 4px; background: #fafafa; text-align: left; user-select: text;"></div>
+                    <label style="display:block; max-width: 650px; margin: 0 auto 10px; text-align:left;">
+                        <input type="checkbox" id="na-step1" />
+                        The description does not mention the focal subject/object.
+                    </label>
+                    <button id="add-selection-step1" type="button" style="margin-bottom: 8px;">Add highlighted text</button>
+                    <ul id="selection-list-step1" style="text-align: left; max-width: 650px; margin: 0 auto; padding-left: 20px; box-sizing: border-box;"></ul>
                 </div>
 
                 <div id="phase-2-panel" style="display:none; max-width: 750px; margin: 0 auto;">
-                    <p style="font-size: 14px; color: #555;">Image description:</p>
-                    <div id="description-block-focal" style="margin-bottom: 8px; padding: 10px; border: 1px solid #ddd; border-radius: 4px; background: #fafafa; text-align: left; user-select: text;"></div>
-                    <label style="display:block; margin-bottom:10px; text-align:left;">
+                    <p style="font-size: 14px; color: #555; max-width: 650px; margin: 0 auto 8px; text-align: left;">Image description:</p>
+                    <div id="description-block-focal" style="max-width: 650px; margin: 0 auto 8px; padding: 10px; border: 1px solid #ddd; border-radius: 4px; background: #fafafa; text-align: left; user-select: text;"></div>
+                    <label style="display:block; max-width: 650px; margin: 0 auto 10px; text-align:left;">
                         <input type="checkbox" id="na-focal" />
-                        The description does not mention or describe the focal subject/object.
+                        The description does not mention or describe the main subject/object or its description.
                     </label>
                     <button id="add-selection-focal" type="button" style="margin-bottom: 8px;">Add highlighted text</button>
-                    <ul id="selection-list-focal" style="text-align: left; max-width: 750px; margin: 0 auto; padding-left: 20px;"></ul>
+                    <ul id="selection-list-focal" style="text-align: left; max-width: 650px; margin: 0 auto; padding-left: 20px; box-sizing: border-box;"></ul>
                 </div>
 
                 <div id="phase-3-panel" style="display:none; max-width: 750px; margin: 0 auto;">
-                    <p style="font-size: 14px; color: #555;">Image description:</p>
-                    <div id="description-block-background" style="margin-bottom: 8px; padding: 10px; border: 1px solid #ddd; border-radius: 4px; background: #fafafa; text-align: left; user-select: text;"></div>
-                    <label style="display:block; margin-bottom:10px; text-align:left;">
+                    <p style="font-size: 14px; color: #555; max-width: 650px; margin: 0 auto 8px; text-align: left;">Image description:</p>
+                    <div id="description-block-background" style="max-width: 650px; margin: 0 auto 8px; padding: 10px; border: 1px solid #ddd; border-radius: 4px; background: #fafafa; text-align: left; user-select: text;"></div>
+                    <label style="display:block; max-width: 650px; margin: 0 auto 10px; text-align:left;">
                         <input type="checkbox" id="na-background" />
                         The description does not mention or describe the background.
                     </label>
                     <button id="add-selection-background" type="button" style="margin-bottom: 8px;">Add highlighted text</button>
-                    <ul id="selection-list-background" style="text-align: left; max-width: 750px; margin: 0 auto; padding-left: 20px;"></ul>
+                    <ul id="selection-list-background" style="text-align: left; max-width: 650px; margin: 0 auto; padding-left: 20px; box-sizing: border-box;"></ul>
+                </div>
+
+                <div id="phase-4-panel" style="display:none; max-width: 750px; margin: 0 auto;">
+                    <p style="font-size: 14px; color: #555; max-width: 650px; margin: 0 auto 8px; text-align: left;">Review description:</p>
+                    <div id="description-block-review" style="max-width: 650px; margin: 0 auto 8px; padding: 10px; border: 1px solid #ddd; border-radius: 4px; background: #fafafa; text-align: left; user-select: text;"></div>
+                    <div style="display: flex; gap: 8px; justify-content: center; flex-wrap: wrap;">
+                        <button id="add-review-focal" type="button" style="margin: 8px 0;">Add as main object-related</button>
+                        <button id="add-review-background" type="button" style="margin: 8px 0;">Add as background-related</button>
+                    </div>
+                    <p style="font-size: 14px; color: #555;">Additional main object-related selections:</p>
+                    <ul id="selection-list-review-focal" style="text-align: left; max-width: 650px; margin: 0 auto; padding-left: 20px; box-sizing: border-box;"></ul>
+                    <p style="font-size: 14px; color: #555;">Additional background-related selections:</p>
+                    <ul id="selection-list-review-background" style="text-align: left; max-width: 650px; margin: 0 auto; padding-left: 20px; box-sizing: border-box;"></ul>
+                    <label style="display:block; max-width: 650px; margin:10px auto 0; text-align:left;">
+                        <input type="checkbox" id="review-complete" />
+                        All related descriptions are highlighted, and the remaining texts are neither main object-related nor background-related.
+                    </label>
                 </div>
 
                 <button id="next">Continue</button>

@@ -579,3 +579,35 @@ textarea {
     cursor: not-allowed;
     opacity: 0.6;
 }
+
+.description-highlight {
+    background-color: #ffeb3b;
+    color: inherit;
+    padding: 0 1px;
+}
+
+.review-previous-highlight {
+    color: #9e9e9e;
+}
+
+.review-unhighlighted-text {
+    color: #111;
+}
+
+/* Step 4 review box: black = never highlighted in steps 1–3; gray = already highlighted there */
+#description-block-review {
+    color: #111111;
+}
+
+#description-block-review .review-previous-highlight {
+    color: #757575;
+}
+
+#description-block-review .review-unhighlighted-text {
+    color: #111111;
+}
+
+#description-block-review .description-highlight {
+    background-color: #ffeb3b;
+    color: #111111;
+}
