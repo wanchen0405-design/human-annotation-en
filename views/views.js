@@ -113,7 +113,7 @@ var intro = {
     title: "Introduction", 
     // introduction text
     text:
-        "<p>Hi and welcome to the study!</p><br><p>In the following section, you will see <strong>5 photos</strong>. For each photo, you will see both the image and its description, and then complete four highlighting steps.</p><br><p><strong>Step 1</strong>: In the text descriptions, highlight the <strong>main subject/object</strong> of the image.</p><br><p><strong>Step 2</strong>: Highlight <strong>all text</strong> that refers to the <strong>main subject/object</strong> and <strong>all text that describes it</strong> (include both identifying mentions and descriptive details).</p><br><p><strong>Step 3</strong>: Highlight <strong>all text</strong> that describes or is related to the <strong>background</strong>.</p><br><p><strong>Step 4</strong>: Review unhighlighted text and add any missing highlights as either main object-related or background-related.</p><br><p>The main subject/object is the <strong>most central and obvious object/subject</strong> in the image.</p><br><p>The background is <strong> everything else </strong> occurring in the scene that provides context and setting. Things that can not be directly observed from the image do not count as backgrounds. </p><br><p>Afterward, you will answer two brief questions about where you live and what languages you speak.</p><br><p>When you are ready, please click the button below to begin.</p>",
+        "<p>Hi and welcome to the study!</p><br><p>In the following section, you will see <strong>5 photos</strong>. For each photo, you will see both the image and its description, and then complete four highlighting steps.</p><br><p><strong>Step 1</strong>: In the text descriptions, highlight the <strong>main subject/object</strong> of the image.</p><br><p><strong>Step 2</strong>: Highlight <strong>all texts</strong> that describe the <strong>main subject/object</strong> (No not include the name of the main subject/object).</p><br><p><strong>Step 3</strong>: Highlight <strong>all text</strong> that describes or is related to the <strong>background</strong>.</p><br><p><strong>Step 4</strong>: Review unhighlighted text and add any missing highlights as either main object-related or background-related.</p><br><p>The main subject/object is the <strong>most central and obvious object/subject</strong> in the image.</p><br><p>The background is <strong> everything else </strong> occurring in the scene that provides context and setting. Things that can not be directly observed from the image do not count as backgrounds. </p><br><p>Afterward, you will answer two brief questions about where you live and what languages you speak.</p><br><p>When you are ready, please click the button below to begin.</p>",
     buttonText: "Begin experiment",
     // render function renders the view
     render: function() {
@@ -228,11 +228,11 @@ var main = {
             if (step === 1) {
                 instruction = "Step 1: Look at the image and highlight the main subject/object in the text descriptions, or check N/A if none applies.";
             } else if (step === 2) {
-                instruction = "Step 2: Highlight all text that refers to the main subject/object and all text that describes it (include both identifying mentions and descriptive details), or check N/A if none applies.";
+                instruction = "Step 2: Highlight all texts which describe the main subject/object (No not include the name of the main subject/object), or check N/A if none applies.";
             } else if (step === 3) {
-                instruction = "Step 3: Highlight all text spans that describe or are related to the background, or check N/A if none applies.";
+                instruction = "Step 3: Highlight all texts which describe or are related to the background, or check N/A if none applies.";
             } else {
-                instruction = "Step 4: Texts in black are ones you have not yet highlighted. Please highlight all texts describing the main subject/object (including its description), and the background. If none applies, then check that remaining text is neither the main subject/object nor the background.";
+                instruction = "Step 4: Texts in black are ones you have not yet highlighted. Please highlight all texts describing the main subject/object and the background. If none applies, then check that remaining text is neither the main subject/object nor the background.";
             }
 
             $(".view .question").first().text("Trial " + (CT + 1) + " of " + main.trials + ": " + phaseTitle);
@@ -631,7 +631,7 @@ var main = {
             if (phaseIndex === 2) {
                 var focalNa = $("#na-focal").is(":checked");
                 if (!focalNa && response.selected_focal_sentences.length === 0) {
-                    $("#error").text("Add at least one highlighted span that covers the main subject/object and/or its description, or check N/A if none applies.").show();
+                    $("#error").text("Please highlight texts which describe the main subject/object, or check N/A if none applies.").show();
                     return;
                 }
                 response.focal_description_na = focalNa;
@@ -644,7 +644,7 @@ var main = {
             if (phaseIndex === 3) {
                 var backgroundNa = $("#na-background").is(":checked");
                 if (!backgroundNa && response.selected_background_sentences.length === 0) {
-                    $("#error").text("Add at least one highlighted span, or check N/A if the background is not described.").show();
+                    $("#error").text("Please highlight texts which describe the background, or check N/A if none applies.").show();
                     return;
                 }
                 response.background_description_na = backgroundNa;
@@ -666,7 +666,7 @@ var main = {
                     response.additional_focal_sentences.length > 0 ||
                     response.additional_background_sentences.length > 0;
                 if (!reviewComplete && !hasAdditionalSelections) {
-                    $("#error").text("Add missing highlights in Step 4, or check that remaining text is neither main object-related nor background-related.").show();
+                    $("#error").text("Highlight texts that are not yet selected, or check that remaining text is neither main object-related nor background-related.").show();
                     return;
                 }
                 response.review_complete_checked = reviewComplete;
