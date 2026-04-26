@@ -118,8 +118,8 @@
                 </div>
                 {{/ image_path }}
 
-                <div class="question-box" style="margin-top: 10px; margin-bottom: 12px;">
-                    <p class="question">{{{ instruction }}}</p>
+                <div class="question-box" style="margin-top: 0; margin-bottom: 2px;">
+                    <p class="question" style="padding: 0 0 6px 0; margin: 0 auto;">{{{ instruction }}}</p>
                 </div>
 
                 <div id="phase-1-panel" style="display:none; max-width: 750px; margin: 0 auto;">
@@ -129,6 +129,10 @@
                         <input type="checkbox" id="na-step1" />
                         The description does not mention the main subject/object.
                     </label>
+
+                    <p style="max-width: 650px; margin: 0 auto 10px; text-align: left; font-style: italic; color: #777; font-size: 15px; line-height: 1.4;">
+                        Note: The main subject/object is the most central and obvious object/subject in the image.
+                    </p>
                     <button id="add-selection-step1" type="button" style="margin-bottom: 8px;">Add highlighted text</button>
                     <ul id="selection-list-step1" style="text-align: left; max-width: 650px; margin: 0 auto; padding-left: 20px; box-sizing: border-box;"></ul>
                 </div>
@@ -138,8 +142,12 @@
                     <div id="description-block-focal" style="max-width: 650px; margin: 0 auto 8px; padding: 10px; border: 1px solid #ddd; border-radius: 4px; background: #fafafa; text-align: left; user-select: text;"></div>
                     <label style="display:block; max-width: 650px; margin: 0 auto 10px; text-align:left;">
                         <input type="checkbox" id="na-focal" />
-                        The description does not mention or describe the main subject/object or its description.
+                        The description does not mention or describe the main subject/object.
                     </label>
+
+                    <p style="max-width: 650px; margin: 0 auto 10px; text-align: left; font-style: italic; color: #777; font-size: 15px; line-height: 1.4;">
+                        Note: The main subject/object is the most central and obvious object/subject in the image.
+                    </p>
                     <button id="add-selection-focal" type="button" style="margin-bottom: 8px;">Add highlighted text</button>
                     <ul id="selection-list-focal" style="text-align: left; max-width: 650px; margin: 0 auto; padding-left: 20px; box-sizing: border-box;"></ul>
                 </div>
@@ -151,6 +159,10 @@
                         <input type="checkbox" id="na-background" />
                         The description does not mention or describe the background.
                     </label>
+
+                    <p style="max-width: 650px; margin: 0 auto 10px; text-align: left; font-style: italic; color: #777; font-size: 15px; line-height: 1.4;">
+                        Note: The background is everything else occurring in the scene that provides context and setting. Things that can not be directly observed from the image do not count as backgrounds.
+                    </p>
                     <button id="add-selection-background" type="button" style="margin-bottom: 8px;">Add highlighted text</button>
                     <ul id="selection-list-background" style="text-align: left; max-width: 650px; margin: 0 auto; padding-left: 20px; box-sizing: border-box;"></ul>
                 </div>

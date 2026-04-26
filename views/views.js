@@ -113,7 +113,7 @@ var intro = {
     title: "Introduction", 
     // introduction text
     text:
-        "<p>Hi and welcome to the study!</p><br><p>In the following section, you will see <strong>5 photos</strong>. For each photo, you will see both the image and its description, and then complete four highlighting steps.</p><br><p><strong>Step 1</strong>: In the text descriptions, highlight the <strong>main subject/object</strong> of the image.</p><br><p><strong>Step 2</strong>: Highlight <strong>all texts</strong> that describe the <strong>main subject/object</strong> (No not include the name of the main subject/object).</p><br><p><strong>Step 3</strong>: Highlight <strong>all text</strong> that describes or is related to the <strong>background</strong>.</p><br><p><strong>Step 4</strong>: Review unhighlighted text and add any missing highlights as either main object-related or background-related.</p><br><p>The main subject/object is the <strong>most central and obvious object/subject</strong> in the image.</p><br><p>The background is <strong> everything else </strong> occurring in the scene that provides context and setting. Things that can not be directly observed from the image do not count as backgrounds. </p><br><p>Afterward, you will answer two brief questions about where you live and what languages you speak.</p><br><p>When you are ready, please click the button below to begin.</p>",
+        "<p>Hi and welcome to the study!</p><br><p>In the following section, you will see <strong>5 photos</strong>, each paired with a description written by someone else. You will be asked to <strong>highlight parts of the description</strong> based on the instructions shown at each step. Please read the instructions carefully and highlight the text according to the instructions.</p><br><p>Afterward, you will answer two brief questions about where you live and what languages you speak.</p><br><p>When you are ready, please click the button below to begin.</p>",
     buttonText: "Begin experiment",
     // render function renders the view
     render: function() {
@@ -182,7 +182,7 @@ var main = {
                 trial_number: CT + 1,
                 total_trials: this.trials,
                 phase_title: "Step 1/4",
-                instruction: "Step 1: Look at the image and highlight the main subject/object in the text descriptions."
+                instruction: "Step 1: Look at the image and highlight only the <strong>main subject/object</strong> in the text descriptions."
             })
         );
 
@@ -226,17 +226,17 @@ var main = {
             var phaseTitle = step === 1 ? "Step 1/4" : step === 2 ? "Step 2/4" : step === 3 ? "Step 3/4" : "Step 4/4";
             var instruction = "";
             if (step === 1) {
-                instruction = "Step 1: Look at the image and highlight the main subject/object in the text descriptions, or check N/A if none applies.";
+                instruction = "Step 1: Look at the image and highlight only the <strong>main subject/object</strong> in the text descriptions.";
             } else if (step === 2) {
-                instruction = "Step 2: Highlight all texts which describe the main subject/object (No not include the name of the main subject/object), or check N/A if none applies.";
+                instruction = "Step 2: Highlight <strong>all</strong> texts mentioning and describing the <strong>main subject/object</strong>.";
             } else if (step === 3) {
-                instruction = "Step 3: Highlight all texts which describe or are related to the background, or check N/A if none applies.";
+                instruction = "Step 3: Highlight <strong>all</strong> texts mentioning and describing the <strong>background</strong>.";
             } else {
-                instruction = "Step 4: Texts in black are ones you have not yet highlighted. Please highlight all texts describing the main subject/object and the background. If none applies, then check that remaining text is neither the main subject/object nor the background.";
+                instruction = "Step 4: Texts in black are ones you have not yet highlighted. Please highlight <strong>all</strong> texts mentioning and describing the <strong>main subject/object</strong> and the <strong>background</strong>.";
             }
 
             $(".view .question").first().text("Trial " + (CT + 1) + " of " + main.trials + ": " + phaseTitle);
-            $(".question-box .question").text(instruction);
+            $(".question-box .question").html(instruction);
 
             if (step === 4) {
                 renderReviewText();
@@ -342,20 +342,46 @@ var main = {
                 highlightRanges.reviewFocal.concat(highlightRanges.reviewBackground)
             );
 
+            // Render contiguous segments (not per-character) to preserve normal word spacing/kerning.
+            var breakpoints = [0, baseText.length];
+            previousRanges.forEach(function(r) {
+                breakpoints.push(r.start, r.end);
+            });
+            reviewRanges.forEach(function(r) {
+                breakpoints.push(r.start, r.end);
+            });
+            breakpoints = Array.from(new Set(breakpoints))
+                .filter(function(n) {
+                    return n >= 0 && n <= baseText.length;
+                })
+                .sort(function(a, b) {
+                    return a - b;
+                });
+
             var html = "";
-            for (var i = 0; i < baseText.length; i++) {
-                var ch = escapeHtml(baseText.charAt(i));
-                var inReview = reviewRanges.some(function(r) { return i >= r.start && i < r.end; });
-                var inPrevious = previousRanges.some(function(r) { return i >= r.start && i < r.end; });
+            for (var i = 0; i < breakpoints.length - 1; i++) {
+                var start = breakpoints[i];
+                var end = breakpoints[i + 1];
+                if (end <= start) {
+                    continue;
+                }
+                var segment = escapeHtml(baseText.slice(start, end));
+                var inReview = reviewRanges.some(function(r) {
+                    return start >= r.start && start < r.end;
+                });
+                var inPrevious = previousRanges.some(function(r) {
+                    return start >= r.start && start < r.end;
+                });
+
                 if (inReview) {
-                    html += "<mark class='description-highlight'>" + ch + "</mark>";
+                    html += "<mark class='description-highlight'>" + segment + "</mark>";
                 } else if (inPrevious) {
-                    html += "<span class='review-previous-highlight'>" + ch + "</span>";
+                    html += "<span class='review-previous-highlight'>" + segment + "</span>";
                 } else {
-                    html += "<span class='review-unhighlighted-text'>" + ch + "</span>";
+                    html += "<span class='review-unhighlighted-text'>" + segment + "</span>";
                 }
             }
-            container.html(html);
+            container.html(html || escapeHtml(baseText));
         };
 
         var renderSelections = function(listSelector, selections, ranges, blockSelector) {
@@ -631,7 +657,7 @@ var main = {
             if (phaseIndex === 2) {
                 var focalNa = $("#na-focal").is(":checked");
                 if (!focalNa && response.selected_focal_sentences.length === 0) {
-                    $("#error").text("Please highlight texts which describe the main subject/object, or check N/A if none applies.").show();
+                    $("#error").text("Please highlight texts which describe the main subject/object, or check the box if none applies.").show();
                     return;
                 }
                 response.focal_description_na = focalNa;
@@ -644,7 +670,7 @@ var main = {
             if (phaseIndex === 3) {
                 var backgroundNa = $("#na-background").is(":checked");
                 if (!backgroundNa && response.selected_background_sentences.length === 0) {
-                    $("#error").text("Please highlight texts which describe the background, or check N/A if none applies.").show();
+                    $("#error").text("Please highlight texts which describe the background, or check the box if none applies.").show();
                     return;
                 }
                 response.background_description_na = backgroundNa;
