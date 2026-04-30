@@ -113,7 +113,7 @@ var intro = {
     title: "Introduction", 
     // introduction text
     text:
-        "<p>Hi and welcome to the study!</p><br><p>In the following section, you will see <strong>5 photos</strong>, each paired with a description written by someone else. You will be asked to <strong>highlight parts of the description</strong> based on the instructions shown at each step. Please read the instructions carefully and highlight the text according to the instructions.</p><br><p>Afterward, you will answer two brief questions about where you live and what languages you speak.</p><br><p>When you are ready, please click the button below to begin.</p>",
+        "<p>Hi and welcome to the study!</p><br><p>In the following section, you will see <strong>5 photos</strong>, each paired with a description written by someone else. You will be asked to <strong>highlight parts of the description</strong> based on the instructions shown at each step. Please read the instructions carefully and highlight the text according to the instructions.</p><br><p>Afterward, you will answer two brief questions about where you live and what languages you speak.</p><br><p>When you are ready, please enter your Prolific ID below and then click the button to begin.</p>",
     buttonText: "Begin experiment",
     // render function renders the view
     render: function() {
@@ -181,8 +181,8 @@ var main = {
                 image_path: filePath,
                 trial_number: CT + 1,
                 total_trials: this.trials,
-                phase_title: "Step 1/4",
-                instruction: "Step 1: Look at the image and highlight only the <strong>main subject/object</strong> in the text descriptions."
+                phase_title: "Step 1/3",
+                instruction: "Step 1: Look at the image and then highlight in the text description what you consider to be the <strong>main subject/object</strong> of the image."
             })
         );
 
@@ -223,16 +223,16 @@ var main = {
             $("#phase-3-panel").toggle(step === 3);
             $("#phase-4-panel").toggle(step === 4);
 
-            var phaseTitle = step === 1 ? "Step 1/4" : step === 2 ? "Step 2/4" : step === 3 ? "Step 3/4" : "Step 4/4";
+            var phaseTitle = step === 1 ? "Step 1/3" : step === 2 ? "Step 2/3" : step === 3 ? "Step 3/3" : "Review";
             var instruction = "";
             if (step === 1) {
-                instruction = "Step 1: Look at the image and highlight only the <strong>main subject/object</strong> in the text descriptions.";
+                instruction = "Step 1: Look at the image and then highlight in the text description what you consider to be the <strong>main subject/object</strong> of the image.";
             } else if (step === 2) {
-                instruction = "Step 2: Highlight <strong>all</strong> texts mentioning and describing the <strong>main subject/object</strong>.";
+                instruction = "Step 2: Highlight <strong>all</strong> parts of the description that both mention and in any way describe the <strong>main subject/object</strong>.";
             } else if (step === 3) {
-                instruction = "Step 3: Highlight <strong>all</strong> texts mentioning and describing the <strong>background</strong>.";
+                instruction = "Highlight <strong>all</strong> parts of the description that either mention or in any way describe the <strong>background</strong> of the image (i.e., visual details that are <strong>not</strong> the main subject/object).";
             } else {
-                instruction = "Step 4: Texts in black are ones you have not yet highlighted. Please highlight <strong>all</strong> texts mentioning and describing the <strong>main subject/object</strong> and the <strong>background</strong>.";
+                instruction = "Review: Texts in black are ones you have not yet highlighted. Please highlight <strong>all</strong> texts mentioning and describing the <strong>main subject/object</strong> and the <strong>background</strong>.";
             }
 
             $(".view .question").first().text("Trial " + (CT + 1) + " of " + main.trials + ": " + phaseTitle);
@@ -420,7 +420,9 @@ var main = {
                     .concat(highlightRanges.background)
             );
             for (var i = 0; i < baseText.length; i++) {
-                if (!/\S/.test(baseText.charAt(i))) {
+                // Ignore whitespace and punctuation; only count letter/number characters
+                // when deciding whether meaningful description text remains unhighlighted.
+                if (!/[A-Za-z0-9]/.test(baseText.charAt(i))) {
                     continue;
                 }
                 var alreadyHighlighted = previousRanges.some(function(r) {
@@ -692,7 +694,7 @@ var main = {
                     response.additional_focal_sentences.length > 0 ||
                     response.additional_background_sentences.length > 0;
                 if (!reviewComplete && !hasAdditionalSelections) {
-                    $("#error").text("Highlight texts that are not yet selected, or check that remaining text is neither main object-related nor background-related.").show();
+                    $("#error").text("You have not select anything yet, or check that remaining text is neither main object-related nor background-related.").show();
                     return;
                 }
                 response.review_complete_checked = reviewComplete;

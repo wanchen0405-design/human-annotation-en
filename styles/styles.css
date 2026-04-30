@@ -587,7 +587,7 @@ textarea {
 }
 
 .review-previous-highlight {
-    color: #9e9e9e;
+    color: #2e7d32;
 }
 
 .review-unhighlighted-text {
@@ -600,7 +600,7 @@ textarea {
 }
 
 #description-block-review .review-previous-highlight {
-    color: #757575;
+    color: #2e7d32;
 }
 
 #description-block-review .review-unhighlighted-text {
